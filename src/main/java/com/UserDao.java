@@ -14,7 +14,7 @@ public class UserDao {
 
 
         Class.forName("com.mysql.cj.jdbc.Driver");
-        Connection conn = DriverManager.getConnection(dbHost, dbUser, dbPassword);//db연동
+        Connection conn = DriverManager.getConnection(dbHost, dbUser, dbPassword);
 
         PreparedStatement ps = conn.prepareStatement(
                 "INSERT INTO users(id,name,password) VALUES(?,?,?)");
@@ -37,7 +37,7 @@ public class UserDao {
 
 
         Class.forName("com.mysql.cj.jdbc.Driver");
-        Connection conn = DriverManager.getConnection(dbHost, dbUser, dbPassword);//db연동
+        Connection conn = DriverManager.getConnection(dbHost, dbUser, dbPassword);
 
         PreparedStatement ps = conn.prepareStatement(
                 "SELECT id, name, password FROM users WHERE id = ?");
