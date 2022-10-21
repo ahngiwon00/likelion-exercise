@@ -4,7 +4,6 @@ import com.domain.User;
 import org.springframework.dao.EmptyResultDataAccessException;
 
 import java.sql.*;
-import java.util.Map;
 
 public class UserDao {
     private ConnectionMaker connectionMaker; //인터페이스
@@ -19,30 +18,39 @@ public class UserDao {
     //ConnectionMaker connectionMaker = new AwsConnectionMaker() <-업캐스팅
 
     //AwsConnectionMaker awsConnectionMaker = new AwsConnectionMaker();
+
+    public void jdbcContextWithStatementStrategy(StatementStrategy strategy){
+        Connection conn = null;
+        PreparedStatement pstmt= null;
+        try {
+            conn = connectionMaker.makeConnection();
+            pstmt = strategy.makePreparedStatement(conn);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {//error가 나도 실행되는 블럭
+            if (pstmt != null) {
+                try {
+                    pstmt.close();
+                } catch (SQLException e) {
+                }
+            }
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
+    }
+
     public void add(User user) throws SQLException, ClassNotFoundException {
-
-        Connection conn = connectionMaker.makeConnection();
-
-
-
-        PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO users(id,name,password) VALUES(?,?,?)");
-        ps.setString(1, user.getId());
-        ps.setString(2, user.getName());
-        ps.setString(3,user.getPassword());
-
-
-        ps.executeUpdate();
-        ps.close();
-        conn.close();
-
+        jdbcContextWithStatementStrategy(new AddStatement(user));
     }
 
     public User get(String id) throws ClassNotFoundException, SQLException {
 
         Connection conn = connectionMaker.makeConnection();
-
-
         PreparedStatement ps = conn.prepareStatement(
                 "SELECT id, name, password FROM users WHERE id = ?");
         ps.setString(1, id);
@@ -61,24 +69,44 @@ public class UserDao {
         return user;
     }
 
+
+
     public void deleteAll() throws SQLException {
-        Connection conn = connectionMaker.makeConnection();
-        PreparedStatement pstmt=conn.prepareStatement("DELETE FROM users");
-        pstmt.executeUpdate();
-        pstmt.close();
-        conn.close();
+        jdbcContextWithStatementStrategy(new DeleteAllStatement());
     }
 
     public int getCount() throws SQLException {
-        Connection conn = connectionMaker.makeConnection();
-        PreparedStatement pstmt = conn.prepareStatement("SELECT count(*) from users");
-        ResultSet rs = pstmt.executeQuery();
-        rs.next();
-        int count = rs.getInt(1);// '1'은 select문에서 첫 번째 항목을 가져오라는 의미
-        rs.close();
-        pstmt.close();
-        conn.close();
-        return count;
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        try {
+            conn = connectionMaker.makeConnection();
+            pstmt = conn.prepareStatement("SELECT count(*) from users");
+            rs = pstmt.executeQuery();
+            rs.next();
+            return rs.getInt(1);// '1'은 select문에서 첫 번째 항목을 가져오라는 의미
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if(rs!=null){
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                }
+            }
+            if (pstmt != null) {
+                try {
+                    pstmt.close();
+                } catch (SQLException e) {
+                }
+            }
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
     }
 
 
